@@ -1,0 +1,6 @@
+{
+  "name": "Indicadores Seven",
+  "description": "Painel de visualização para os Indicadores Seven, com dados integrados do Google Sheets.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
