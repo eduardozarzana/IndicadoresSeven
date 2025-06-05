@@ -51,7 +51,7 @@ const sectorsData: { name: string; description?: string; indicators: InitialIndi
     indicators: [
       { name: 'NÚMERO DE VENDAS TOTAIS', value: 155, format: 'percentage', target: 7, lastRecordObservation: 'Aumento devido à campanha de Páscoa. Ver anexo para detalhes sobre a performance e ROI.', lastRecordFilesLink: 'https://example.com/pascoa_report.pdf' },
       { name: 'NÚMERO DE VENDAS BOT', value: 0, format: 'percentage', target: 6, lastRecordObservation: 'Bot offline para manutenção programada no último período. Retorno previsto para amanhã.' },
-      { name: 'CONVERSÃO BOT', value: 0, format: 'percentage', trend: Trend.Up, target: 30, lastRecordFilesLink: 'https://example.com/bot_conversion_data.xlsx', lastRecordObservation: 'Taxa de conversão do bot zerada devido à manutenção mencionada.' },
+      { name: 'CONVERSÃO BOT (%)', value: 0, format: 'percentage', trend: Trend.Up, target: 30, lastRecordFilesLink: 'https://example.com/bot_conversion_data.xlsx', lastRecordObservation: 'Taxa de conversão do bot zerada devido à manutenção mencionada.' },
     ],
   },
   {
@@ -60,9 +60,9 @@ const sectorsData: { name: string; description?: string; indicators: InitialIndi
     sectorObservation: 'Fila de prospects alta pós-feriado. Equipe focada na redução. Número de indevidos ainda é um ponto de atenção.',
     indicators: [
       { name: 'NÚMERO FILA PROSPECT (INÍCIO DE DIA)', value: 150, format: 'number', trend: Trend.Down, target: 10, lastRecordObservation: 'Fila alta devido ao feriado prolongado. Equipe focada em reduzir nas próximas 48h.' },
-      { name: 'NÚEMRO DE INDEVIDOS', value: 25, format: 'number', trend: Trend.Down, target: 3, lastRecordObservation: 'Número de contatos indevidos ainda acima da meta. Revisar filtros de qualificação.', lastRecordFilesLink: 'https://example.com/indevidos_analise.txt' },
+      { name: 'NÚMERO DE INDEVIDOS', value: 25, format: 'number', trend: Trend.Down, target: 3, lastRecordObservation: 'Número de contatos indevidos ainda acima da meta. Revisar filtros de qualificação.', lastRecordFilesLink: 'https://example.com/indevidos_analise.txt' },
       { name: 'NÚMERO DE VENDAS HUMANO', value: 15, format: 'percentage', target: 1350, lastRecordFilesLink: 'https://example.com/human_sales_overview.docx', lastRecordObservation: 'Vendas humanas estáveis, mas com potencial de crescimento.' },
-      { name: 'CONVERSÃO HUMANO', value: 24, format: 'percentage', trend: Trend.Up, target: 14, lastRecordObservation: 'Melhoria na conversão de 2% após treinamento da equipe em novas técnicas de abordagem.' },
+      { name: 'CONVERSÃO HUMANO (%)', value: 24, format: 'percentage', trend: Trend.Up, target: 14, lastRecordObservation: 'Melhoria na conversão de 2% após treinamento da equipe em novas técnicas de abordagem.' },
     ],
   },
   {
