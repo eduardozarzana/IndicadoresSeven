@@ -1,13 +1,12 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
-import { DashboardData, FormDataEntry, ViewMode, Sector, Indicator } from './types'; // Added Sector, Indicator, ViewMode
+import { DashboardData, FormDataEntry, ViewMode } from './types'; // Added ViewMode
 import { fetchDataFromGoogleAppsScript, submitFormDataToGoogleScript } from './services/googleSheetService'; 
 import DashboardDisplay from './components/DashboardDisplay';
 import LoadingSpinner from './components/shared/LoadingSpinner';
 import ErrorDisplay from './components/shared/ErrorDisplay';
-import { mockSectors } from './services/mockDataService'; // Import mockSectors directly
+import { fetchDashboardData as fetchMockData, mockSectors } from './services/mockDataService';
 import DataEntryForm from './components/DataEntryForm';
-import ChartsView from './components/ChartsView';
+import ChartsView from './components/ChartsView'; // Importar a nova visualização de gráficos
 
 const GOOGLE_APPS_SCRIPT_URL: string = 'https://script.google.com/macros/s/AKfycbwNtVU7GEFlKlU9PlNSKN-84UIEAGPGG-9VcL9_jKa9PCTh5x0KNTsC59JFvtxuBgkoIw/exec'; 
 
@@ -21,110 +20,103 @@ const App: React.FC = () => {
   const [formSubmissionStatus, setFormSubmissionStatus] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
   const [isSubmittingForm, setIsSubmittingForm] = useState<boolean>(false);
 
-  const [currentView, setCurrentView] = useState<ViewMode>(ViewMode.List);
+  const [currentView, setCurrentView] = useState<ViewMode>(ViewMode.List); // Estado para a visualização atual
+
+  const deduplicateArrayById = <T extends { id: string }>(arr: T[]): T[] => {
+    if (!arr) return [];
+    const uniqueItems: T[] = [];
+    const seenIds = new Set<string>();
+    for (const item of arr) {
+      if (item && item.id && !seenIds.has(item.id)) {
+        uniqueItems.push(item);
+        seenIds.add(item.id);
+      }
+    }
+    return uniqueItems;
+  };
 
   const loadData = useCallback(async (isRetry: boolean = false) => {
     if (!isRetry) setIsLoading(true);
     setError(null);
-    // Don't reset dataSourceMessage on retry, so user knows original status if retry fails
-    // if (!isRetry) setDataSourceMessage('');
+    if (!isRetry) setDataSourceMessage('');
 
     const forcedTitle = "Indicadores Seven";
-    let liveData: DashboardData | null = null;
-    let liveDataError: string | null = null;
 
-    // 1. Attempt to fetch live data if URL is provided
-    if (GOOGLE_APPS_SCRIPT_URL && GOOGLE_APPS_SCRIPT_URL.trim() !== '') {
-      try {
-        liveData = await fetchDataFromGoogleAppsScript(GOOGLE_APPS_SCRIPT_URL);
-        if (!isRetry) setDataSourceMessage('Dados carregados e mesclados do Google Sheets.');
-      } catch (scriptError) {
-        console.error("Falha ao buscar dados do Google Apps Script:", scriptError);
-        liveDataError = scriptError instanceof Error ? scriptError.message : String(scriptError);
-        if (!isRetry) setDataSourceMessage(`Falha ao carregar do Google Sheets (${liveDataError}). Usando estrutura base com dados de exemplo.`);
+    try {
+      let data: DashboardData;
+      if (GOOGLE_APPS_SCRIPT_URL && GOOGLE_APPS_SCRIPT_URL.trim() !== '') {
+        data = await fetchDataFromGoogleAppsScript(GOOGLE_APPS_SCRIPT_URL);
+        if (!isRetry) setDataSourceMessage('Dados carregados do Google Sheets via Apps Script.');
+      } else {
+        console.warn("URL do Google Apps Script não fornecida. Usando dados mockados.");
+        data = await fetchMockData();
+        if (!isRetry) setDataSourceMessage('URL do Google Apps Script não fornecida. Exibindo dados de exemplo.');
       }
-    } else {
-      if (!isRetry) setDataSourceMessage('URL do Google Apps Script não fornecida. Exibindo dados de exemplo.');
-    }
+      data.title = forcedTitle;
 
-    // 2. Start with mockSectors as the base structure and order (deep copy)
-    const baseStructureSectors: Sector[] = JSON.parse(JSON.stringify(mockSectors));
-    let finalSectors = baseStructureSectors;
-    let finalLastUpdated = new Date().toISOString(); // Default to now
-    let finalTitle = forcedTitle;
+      if (data && data.sectors) {
+        data.sectors = deduplicateArrayById(data.sectors);
+        data.sectors.forEach(sector => {
+          if (sector && sector.indicators) {
+            sector.indicators = deduplicateArrayById(sector.indicators);
+          }
+        });
+      }
+      
+      setDashboardData(data);
 
-    // 3. Merge live data into the mock structure if live data exists
-    if (liveData && liveData.sectors) {
-      finalLastUpdated = liveData.lastUpdated || finalLastUpdated;
-      finalTitle = liveData.title || finalTitle;
-
-      const liveSectorsMap = new Map<string, Sector>();
-      liveData.sectors.forEach(sector => liveSectorsMap.set(sector.id, sector));
-
-      finalSectors = baseStructureSectors.map(mockSector => {
-        const liveSectorData = liveSectorsMap.get(mockSector.id);
-        
-        if (liveSectorData) {
-          const liveIndicatorsMap = new Map<string, Indicator>();
-          liveSectorData.indicators.forEach(indicator => liveIndicatorsMap.set(indicator.id, indicator));
-
-          const mergedIndicators = mockSector.indicators.map(mockIndicator => {
-            const liveIndicatorData = liveIndicatorsMap.get(mockIndicator.id);
-            if (liveIndicatorData) {
-              return {
-                // From Mock (structural, defaults like name, format, isMandatory)
-                id: mockIndicator.id,
-                name: mockIndicator.name,
-                format: mockIndicator.format,
-                isMandatory: mockIndicator.isMandatory,
-
-                // From Live Data (dynamic values, trend, observations)
-                value: liveIndicatorData.value,
-                trend: liveIndicatorData.trend,
-                average7Days: liveIndicatorData.average7Days,
-                average30Days: liveIndicatorData.average30Days,
-                lastRecordObservation: liveIndicatorData.lastRecordObservation,
-                lastRecordFilesLink: liveIndicatorData.lastRecordFilesLink,
-                
-                // Meta and Unit: Prefer live, fallback to mock
-                target: liveIndicatorData.target !== undefined ? liveIndicatorData.target : mockIndicator.target,
-                unit: liveIndicatorData.unit !== undefined ? liveIndicatorData.unit : mockIndicator.unit,
-                // Description: Prefer live, fallback to mock
-                description: liveIndicatorData.description !== undefined ? liveIndicatorData.description : mockIndicator.description,
-              };
+    } catch (err) {
+      console.error("Falha ao buscar dados do painel:", err);
+      const errorMessage = err instanceof Error ? err.message : 'Ocorreu um erro desconhecido ao buscar os dados.';
+      setError(errorMessage);
+      
+      if (GOOGLE_APPS_SCRIPT_URL && GOOGLE_APPS_SCRIPT_URL.trim() !== '') {
+        try {
+            console.warn("Tentando carregar dados mockados como fallback após erro do Google Apps Script.");
+            let mockData = await fetchMockData();
+            mockData.title = forcedTitle; 
+            if (mockData && mockData.sectors) {
+                mockData.sectors = deduplicateArrayById(mockData.sectors);
+                mockData.sectors.forEach(sector => {
+                    if (sector && sector.indicators) {
+                        sector.indicators = deduplicateArrayById(sector.indicators);
+                    }
+                });
             }
-            return mockIndicator; // Live data not found for this indicator, use mock
-          });
-          
-          // Merge sector-level details
-          return {
-            ...mockSector, // Base structure from mock (id, name)
-            indicators: mergedIndicators,
-            description: liveSectorData.description !== undefined ? liveSectorData.description : mockSector.description,
-            sectorObservation: liveSectorData.sectorObservation !== undefined ? liveSectorData.sectorObservation : mockSector.sectorObservation,
-            sectorFilesLink: liveSectorData.sectorFilesLink !== undefined ? liveSectorData.sectorFilesLink : mockSector.sectorFilesLink,
-          };
+            setDashboardData(mockData);
+            if (!isRetry) setDataSourceMessage(`Falha ao carregar do Google Sheets (${errorMessage}). Exibindo dados de exemplo.`);
+        } catch (mockErr) {
+            console.error("Falha ao buscar dados mockados como fallback:", mockErr);
+             const mockErrorMessage = mockErr instanceof Error ? mockErr.message : 'Falha ao carregar dados de exemplo.';
+             setError(`Primário: ${errorMessage}. Fallback: ${mockErrorMessage}`);
+             setDashboardData(null); 
         }
-        return mockSector; // Live data not found for this sector, use mock
-      });
-    } else if (liveDataError && !isRetry) {
-      // Message already set, error will be displayed if needed.
-      // finalSectors remains baseStructureSectors (mock data).
+      } else { 
+        try {
+            console.warn("Tentando carregar dados mockados como fallback principal.");
+            let mockData = await fetchMockData(); 
+            mockData.title = forcedTitle;
+            if (mockData && mockData.sectors) {
+                mockData.sectors = deduplicateArrayById(mockData.sectors);
+                mockData.sectors.forEach(sector => {
+                    if (sector && sector.indicators) {
+                        sector.indicators = deduplicateArrayById(sector.indicators);
+                    }
+                });
+            }
+            setDashboardData(mockData);
+            if (!isRetry) setDataSourceMessage('Exibindo dados de exemplo após falha inicial.');
+        } catch (finalMockErr) {
+            console.error("Falha ao buscar dados mockados como fallback final:", finalMockErr);
+            const finalMockErrorMessage = finalMockErr instanceof Error ? finalMockErr.message : 'Falha crítica ao carregar dados de exemplo.';
+            setError(finalMockErrorMessage);
+            setDashboardData(null);
+        }
+      }
+    } finally {
+      if (!isRetry) setIsLoading(false);
     }
-
-    setDashboardData({
-      title: finalTitle,
-      sectors: finalSectors,
-      lastUpdated: finalLastUpdated,
-    });
-
-    if (liveDataError && !liveData && !isRetry) { // If live data fetch failed AND we have no live data to show
-        setError(liveDataError); // Set error to display ErrorDisplay component if appropriate
-    }
-
-    setIsLoading(false);
   }, []);
-
 
   useEffect(() => {
     loadData();
@@ -158,6 +150,7 @@ const App: React.FC = () => {
         if (!firstErrorMessage) {
           firstErrorMessage = message;
         }
+        // Específico para erro de duplicidade
         if (message.includes("DUPLICATE_ENTRY")) {
             firstErrorMessage = message.replace("DUPLICATE_ENTRY:", "").trim();
         }
@@ -181,118 +174,102 @@ const App: React.FC = () => {
     await loadData(true); 
   };
 
-  if (isLoading && !dashboardData) { // Show main loader only on initial load
+  if (isLoading && !dashboardData) {
     return <LoadingSpinner />;
   }
 
-  const renderControls = () => (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 mt-[-2rem] mb-6 flex flex-col sm:flex-row justify-between items-center">
-      <div className="flex space-x-2 mb-4 sm:mb-0">
-        <button
-          onClick={() => setCurrentView(ViewMode.List)}
-          disabled={currentView === ViewMode.List || isLoading}
-          className={`px-4 py-2 text-sm font-medium rounded-md transition-colors duration-150 ${
-            currentView === ViewMode.List 
-              ? 'bg-primary text-white cursor-default' 
-              : 'bg-slate-200 text-neutral hover:bg-slate-300'
-          } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-          aria-pressed={currentView === ViewMode.List}
-        >
-          Visualizar Lista
-        </button>
-        <button
-          onClick={() => setCurrentView(ViewMode.Charts)}
-          disabled={currentView === ViewMode.Charts || isLoading}
-          className={`px-4 py-2 text-sm font-medium rounded-md transition-colors duration-150 ${
-            currentView === ViewMode.Charts 
-              ? 'bg-primary text-white cursor-default' 
-              : 'bg-slate-200 text-neutral hover:bg-slate-300'
-          } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-          aria-pressed={currentView === ViewMode.Charts}
-        >
-          Visualizar Gráficos
-        </button>
-      </div>
-      <button
-        onClick={() => {
-          setShowDataEntryForm(true);
-          setFormSubmissionStatus(null); 
-        }}
-        disabled={isLoading}
-        className={`px-5 py-2.5 text-sm font-medium text-base bg-accent hover:bg-purple-700 focus:ring-4 focus:outline-none focus:ring-purple-300 rounded-lg shadow-md transition-all duration-150 ease-in-out ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-        aria-label="Abrir formulário de entrada de dados"
-      >
-        Lançar Dados Diários
-      </button>
-    </div>
-  );
+  if (error && !dashboardData) {
+    return <ErrorDisplay message={error} onRetry={() => loadData()} />;
+  }
+  
+  if (!dashboardData) {
+    return <ErrorDisplay message={error || "Não foi possível carregar os dados do painel."} onRetry={() => loadData()} />;
+  }
 
   return (
-    <>
-      {renderControls()}
-
+    <div className="min-h-screen bg-base">
       {dataSourceMessage && (
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 mb-2">
-            <div className={`p-3 rounded-md text-sm ${error ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}`}>
-                {dataSourceMessage}
-            </div>
-          </div>
-      )}
-      
-      {/* Show main error display only if loading finished, there's an error, AND no data (even mock) is set */}
-      {isLoading && !dashboardData && <LoadingSpinner />}
-      {!isLoading && error && !dashboardData && (
-        <ErrorDisplay message={error} onRetry={() => loadData(false)} /> // Full retry on error if no data
-      )}
-
-      {dashboardData && currentView === ViewMode.List && <DashboardDisplay data={dashboardData} />}
-      {dashboardData && currentView === ViewMode.Charts && <ChartsView data={dashboardData} />}
-      
-      {!isLoading && !error && !dashboardData && (
-         <div className="text-center py-10">
-            <p className="text-xl text-gray-500">Nenhum dado disponível para exibição.</p>
+        <div 
+          className={`p-2 text-center text-sm ${error && (GOOGLE_APPS_SCRIPT_URL && GOOGLE_APPS_SCRIPT_URL.trim() !== '') ? 'bg-yellow-200 text-yellow-800 border-b border-yellow-300' : 'bg-blue-100 text-blue-700 border-b border-blue-200'}`}
+          role="alert"
+        >
+          {dataSourceMessage}
         </div>
       )}
-
-      {showDataEntryForm && dashboardData && (
-        <DataEntryForm
-          sectorsData={dashboardData.sectors} // This will now be the merged data
-          onSubmit={handleFormSubmit}
-          onClose={() => setShowDataEntryForm(false)}
-          isLoading={isSubmittingForm}
-        />
-      )}
+      {error && dashboardData && (GOOGLE_APPS_SCRIPT_URL && GOOGLE_APPS_SCRIPT_URL.trim() !== '') && dataSourceMessage.includes("Exibindo dados de exemplo.") && (
+         <div className="p-2 text-center text-sm bg-yellow-200 text-yellow-800 border-b border-yellow-300" role="alert">
+            Aviso: {error} 
+         </div>
+       )}
 
       {formSubmissionStatus && (
         <div 
-            className={`fixed bottom-5 right-5 p-4 rounded-lg shadow-xl text-base z-50 max-w-sm ${
-            formSubmissionStatus.type === 'success' ? 'bg-green-500' : 
-            formSubmissionStatus.type === 'error' ? 'bg-red-500' : 'bg-blue-500'
-            }`}
-            role="alert"
+          className={`p-3 my-2 mx-4 rounded-md text-sm text-center ${formSubmissionStatus.type === 'success' ? 'bg-green-100 text-green-700' : (formSubmissionStatus.type === 'error' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700')}`}
+          role={formSubmissionStatus.type === 'error' ? 'alert' : 'status'}
+          aria-live="assertive"
         >
-          <div className="flex items-center">
-            {formSubmissionStatus.type === 'success' && (
-              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path></svg>
-            )}
-            {formSubmissionStatus.type === 'error' && (
-             <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"></path></svg>
-            )}
-            {formSubmissionStatus.type === 'info' && (
-             <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"></path></svg>
-            )}
-            <span>{formSubmissionStatus.message}</span>
-          </div>
-          <button 
-            onClick={() => setFormSubmissionStatus(null)} 
-            className="absolute top-1 right-2 text-xl leading-none text-inherit hover:text-gray-300"
-            aria-label="Fechar notificação"
-          >
-            &times;
-          </button>
+          {formSubmissionStatus.message}
+          <button onClick={() => setFormSubmissionStatus(null)} className="ml-4 font-bold hover:opacity-75 p-1 leading-none">Fechar</button>
         </div>
       )}
-    </>
+
+      <div className="container mx-auto p-4 sm:p-6 lg:p-8 relative">
+        <div className="fixed bottom-6 right-6 z-40 flex flex-col space-y-3">
+            <button
+                onClick={() => { setShowDataEntryForm(true); setFormSubmissionStatus(null); }}
+                className="bg-primary hover:bg-accent text-base font-bold py-3 px-6 rounded-full shadow-lg transition-transform duration-150 ease-in-out hover:scale-105 flex items-center justify-center"
+                aria-label="Adicionar Novo Registro"
+                title="Adicionar Novo Registro"
+            >
+               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              Novo Registro
+            </button>
+        </div>
+
+        {showDataEntryForm && ( 
+          <DataEntryForm
+            sectorsData={mockSectors} 
+            onSubmit={handleFormSubmit}
+            onClose={() => setShowDataEntryForm(false)}
+            isLoading={isSubmittingForm}
+          />
+        )}
+
+        {/* Controles de Visualização */}
+        <div className="mb-6 flex justify-center space-x-2 bg-slate-200 p-1 rounded-lg shadow">
+          <button
+            onClick={() => setCurrentView(ViewMode.List)}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors
+                        ${currentView === ViewMode.List ? 'bg-primary text-base' : 'bg-transparent text-neutral hover:bg-slate-300'}`}
+            aria-pressed={currentView === ViewMode.List}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 inline-block mr-1.5 align-text-bottom" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+            </svg>
+            Lista
+          </button>
+          <button
+            onClick={() => setCurrentView(ViewMode.Charts)}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors
+                        ${currentView === ViewMode.Charts ? 'bg-primary text-base' : 'bg-transparent text-neutral hover:bg-slate-300'}`}
+            aria-pressed={currentView === ViewMode.Charts}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 inline-block mr-1.5 align-text-bottom" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
+              <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" />
+            </svg>
+            Gráficos
+          </button>
+        </div>
+        
+        {/* Renderização condicional da visualização */}
+        {currentView === ViewMode.List && <DashboardDisplay data={dashboardData} />}
+        {currentView === ViewMode.Charts && <ChartsView data={dashboardData} />}
+        
+      </div>
+    </div>
   );
 };
 
