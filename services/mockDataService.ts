@@ -1,4 +1,3 @@
-
 import { DashboardData, Trend, Sector, Indicator } from '../types';
 
 // Função para gerar IDs amigáveis (slugify)
@@ -49,9 +48,8 @@ const sectorsData: { name: string; description?: string; indicators: InitialIndi
     sectorObservation: 'Campanha de Páscoa impulsionou as vendas. O bot esteve em manutenção, impactando sua conversão.',
     sectorFilesLink: 'https://example.com/marketing_reports_folder',
     indicators: [
-      { name: 'NÚMERO DE VENDAS TOTAIS', value: 155, format: 'percentage', target: 7, lastRecordObservation: 'Aumento devido à campanha de Páscoa. Ver anexo para detalhes sobre a performance e ROI.', lastRecordFilesLink: 'https://example.com/pascoa_report.pdf' },
-      { name: 'NÚMERO DE VENDAS BOT', value: 0, format: 'percentage', target: 6, lastRecordObservation: 'Bot offline para manutenção programada no último período. Retorno previsto para amanhã.' },
-      { name: 'CONVERSÃO BOT (%)', value: 0, format: 'percentage', trend: Trend.Up, target: 30, lastRecordFilesLink: 'https://example.com/bot_conversion_data.xlsx', lastRecordObservation: 'Taxa de conversão do bot zerada devido à manutenção mencionada.' },
+      { name: 'NÚMERO DE VENDAS TOTAIS', value: 155, format: 'number', target: 7, lastRecordObservation: 'Aumento devido à campanha de Páscoa. Ver anexo para detalhes sobre a performance e ROI.', lastRecordFilesLink: 'https://example.com/pascoa_report.pdf' },
+      
     ],
   },
   {
@@ -59,11 +57,11 @@ const sectorsData: { name: string; description?: string; indicators: InitialIndi
     description: 'Indicadores de conversão da equipe de pré-vendas.',
     sectorObservation: 'Fila de prospects alta pós-feriado. Equipe focada na redução. Número de indevidos ainda é um ponto de atenção.',
     indicators: [
-      { name: 'NÚMERO FILA PROSPECT (INÍCIO DE DIA)', value: 150, format: 'number', trend: Trend.Down, target: 10, lastRecordObservation: 'Fila alta devido ao feriado prolongado. Equipe focada em reduzir nas próximas 48h.' },
-      { name: 'NÚMERO DE INDEVIDOS', value: 25, format: 'number', trend: Trend.Down, target: 3, lastRecordObservation: 'Número de contatos indevidos ainda acima da meta. Revisar filtros de qualificação.', lastRecordFilesLink: 'https://example.com/indevidos_analise.txt' },
-      { name: 'NÚMERO DE VENDAS HUMANO', value: 15, format: 'percentage', target: 1350, lastRecordFilesLink: 'https://example.com/human_sales_overview.docx', lastRecordObservation: 'Vendas humanas estáveis, mas com potencial de crescimento.' },
-      { name: 'CONVERSÃO HUMANO (%)', value: 24, format: 'percentage', trend: Trend.Up, target: 14, lastRecordObservation: 'Melhoria na conversão de 2% após treinamento da equipe em novas técnicas de abordagem.' },
-    ],
+  { name: 'NÚMERO FILA PROSPECT (INÍCIO DE DIA)', value: 150, format: 'number', trend: Trend.Down, target: 10, lastRecordObservation: 'Fila alta devido ao feriado prolongado. Equipe focada em reduzir nas próximas 48h.' },
+  { name: 'NÚMERO DE FILA TREBLE', value: 0, format: 'number', trend: Trend.Down, target: 5, lastRecordObservation: 'Novo indicador de fila Treble.' },
+  { name: 'NÚMERO DE VENDAS HUMANO', value: 15, format: 'percentage', target: 1350, lastRecordFilesLink: 'https://example.com/human_sales_overview.docx', lastRecordObservation: 'Vendas humanas estáveis, mas com potencial de crescimento.' },
+  { name: 'CONVERSÃO HUMANO', value: 24, format: 'percentage', trend: Trend.Up, target: 14, lastRecordObservation: 'Melhoria na conversão de 2% após treinamento da equipe em novas técnicas de abordagem.' },
+],
   },
   {
     name: 'PRÉ VENDAS COMPARECIMENTO',
@@ -86,7 +84,6 @@ const sectorsData: { name: string; description?: string; indicators: InitialIndi
       { name: '%TG', value: 0, format: 'percentage', target: 40, lastRecordFilesLink: 'https://example.com/tg_details.csv'},
       { name: 'CONVERSÃO NO DIA', value: 0, format: 'percentage', target: 60, lastRecordObservation: 'Meta de conversão para o dia.'}, 
       { name: 'SINAIS PENDENTES (ACUMULADO)', value: 0, format: 'number', trend: Trend.Down, lastRecordObservation: 'Redução no número de sinais pendentes.' },
-      { name: 'PENDÊNCIAS COMERCIAL PLANILHA (ACUMULADO)', value: 0, format: 'number', trend: Trend.Down },
       { name: 'PENDÊNCIA PACIENTE/ASSINATURA (ACUMULADO)', value: 0, format: 'number', trend: Trend.Down, lastRecordFilesLink: 'https://example.com/pending_signatures.csv', lastRecordObservation: 'Acompanhamento de assinaturas pendentes está em dia.' },
     ],
   },
@@ -116,6 +113,18 @@ const sectorsData: { name: string; description?: string; indicators: InitialIndi
       { name: 'NOTA NPS', value: 0, format: 'number', trend: Trend.Up, target: 900, lastRecordObservation: 'NPS da nutrição se mantém alto.' },
     ],
   },
+
+{
+  name: 'PÓS-VENDAS',
+  description: 'Indicadores do setor de pós-vendas.',
+  indicators: [
+    { name: 'TOTAL DE OPORTUNIDADES', value: 0, format: 'number', lastRecordObservation: 'Total de oportunidades geradas no pós-vendas.' },
+    { name: 'CONVERSÃO NO DIA', value: 0, format: 'percentage', lastRecordObservation: 'Taxa de conversão do dia no pós-vendas.' },
+    { name: 'TOTAL DE VENDAS R$', value: 0, format: 'currency', unit: 'BRL', lastRecordObservation: 'Total de vendas em reais no pós-vendas.' },
+    { name: 'NÚMERO PENDÊNCIAS PLANILHA (ACUMULADO)', value: 0, format: 'number', lastRecordObservation: 'Pendências acumuladas na planilha do pós-vendas.' },
+  ],
+},
+
   {
     name: 'LOGÍSTICA',
     description: 'Indicadores de operações logísticas.',
