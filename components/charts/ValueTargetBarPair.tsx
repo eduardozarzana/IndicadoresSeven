@@ -1,26 +1,30 @@
 import React from 'react';
 import { Indicator } from '../../types'; // Usaremos para formatação
 
-// Helper de formatação copiado e adaptado de IndicatorTile.tsx
+// Helper de formatação ajustado
 const formatChartValue = (
   value: number | string, 
   format?: 'currency' | 'percentage' | 'number', 
   unitForDisplay?: string
 ): string => {
-  const displayUnit = unitForDisplay; // Moved declaration up
+  const displayUnit = unitForDisplay; 
 
-  if (value === 'N/A' || value === 'N/D' || (typeof value === 'string' && value.trim() === '')) {
-    return typeof value === 'string' ? value : String(value);
+  if (value === 'N/A' || value === 'N/D' || value === null || value === undefined) {
+    return String(value);
+  }
+  if (typeof value === 'string' && value.trim() === '') {
+    return value;
   }
   
   let numericValue = typeof value === 'string' ? parseFloat(value.replace(',', '.')) : value;
 
   if (typeof value === 'string' && isNaN(numericValue)) {
-    // Check if displayUnit exists and is not already part of the value string
     return `${value}${displayUnit && !value.includes(displayUnit) ? ` ${displayUnit}` : ''}`;
   }
+  // Agora numericValue é um número
 
   let formattedString: string;
+  const valueStr = String(numericValue); // String representation of the number
 
   switch (format) {
     case 'currency':
@@ -29,17 +33,51 @@ const formatChartValue = (
       break;
     case 'percentage':
       const percentSuffix = (displayUnit === undefined || displayUnit === '%') ? '%' : ` ${displayUnit}`;
-      formattedString = `${numericValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${percentSuffix}`;
+      let originalPercentDecimals = 0;
+      if (valueStr.includes('.')) {
+        const decimalPart = valueStr.split('.')[1];
+        if (decimalPart) {
+          originalPercentDecimals = decimalPart.length;
+        }
+      }
+      // Ajuste para evitar que números como 56.0 sejam exibidos como "56.0" (queremos "56")
+      // Se for um inteiro (ex: 56, ou 56.000), originalPercentDecimals será 0 após a conversão para número,
+      // a menos que queiramos preservar os zeros à direita do input string original.
+      // parseFloat("56.0") is 56. So String(numericValue) for 56.0 (input string) would be "56".
+      // We need to look at the original `value` if it was a string with trailing zeros.
+      let effectivePercentDecimals = 0;
+      if (typeof value === 'string' && value.includes('.')) {
+          const originalDecimalPart = value.split('.')[1];
+          if (originalDecimalPart) effectivePercentDecimals = originalDecimalPart.length;
+      } else if (String(numericValue).includes('.')) {
+          const numericDecimalPart = String(numericValue).split('.')[1];
+          if (numericDecimalPart) effectivePercentDecimals = numericDecimalPart.length;
+      }
+
+
+      formattedString = numericValue.toLocaleString('pt-BR', { 
+        minimumFractionDigits: effectivePercentDecimals, 
+        maximumFractionDigits: effectivePercentDecimals 
+      }) + percentSuffix;
       break;
     case 'number':
     default:
-      const isInteger = Number.isInteger(numericValue);
+      let originalNumDecimals = 0;
+      // Similar logic for decimals as percentage
+      if (typeof value === 'string' && value.includes('.')) {
+          const originalDecimalPart = value.split('.')[1];
+          if (originalDecimalPart) originalNumDecimals = originalDecimalPart.length;
+      } else if (String(numericValue).includes('.')) { // numericValue is definitely a number here
+          const numericDecimalPart = String(numericValue).split('.')[1];
+          if (numericDecimalPart) originalNumDecimals = numericDecimalPart.length;
+      }
+
       formattedString = numericValue.toLocaleString('pt-BR', { 
-        minimumFractionDigits: isInteger ? 0 : (String(numericValue).includes('.') ? String(numericValue).split('.')[1].length : 0),
-        maximumFractionDigits: 10 
+        minimumFractionDigits: originalNumDecimals, 
+        maximumFractionDigits: originalNumDecimals 
       });
-      // Add unit if it exists, not already part of the string, and format is not percentage (which handles its own unit)
-      if (displayUnit && !formattedString.endsWith(displayUnit)) { // Removed redundant format !== 'percentage'
+      
+      if (displayUnit && !formattedString.endsWith(displayUnit)) {
          formattedString += ` ${displayUnit}`;
       }
       break;
@@ -64,8 +102,9 @@ const ValueTargetBarPair: React.FC<ValueTargetBarPairProps> = ({
   format,
   unit,
 }) => {
-  const isMetricNumeric = typeof metricValue === 'number';
-  const numericMetricValue = isMetricNumeric ? metricValue : parseFloat(String(metricValue).replace(',', '.'));
+  const isMetricNumeric = typeof metricValue === 'number' || (typeof metricValue === 'string' && !isNaN(parseFloat(metricValue.replace(',', '.'))));
+  const numericMetricValue = isMetricNumeric ? (typeof metricValue === 'number' ? metricValue : parseFloat(metricValue.replace(',', '.'))) : 0;
+
 
   const metricPercentage = maxValueForScale > 0 && isMetricNumeric ? (numericMetricValue / maxValueForScale) * 100 : 0;
   const targetPercentage = maxValueForScale > 0 ? (targetValue / maxValueForScale) * 100 : 0;
