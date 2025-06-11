@@ -159,14 +159,14 @@ const sectorsData: { name: string; description?: string; indicators: InitialIndi
     sectorObservation: 'Baixo volume de chamados SAC e queixas. Sem casos em aberto no Reclame Aqui.',
     sectorFilesLink: 'https://example.com/jornada_cliente_faq',
     indicators: [
-      { name: 'SAC: Nº EM ABERTO', value: 0, format: 'number', trend: Trend.Down, lastRecordObservation: 'Poucos chamados SAC em aberto.' },
-      { name: 'QUEIXAS: NOVOS CASOS', value: 0, format: 'number', trend: Trend.Down },
-      { name: 'QUEIXAS: EM ABERTO', value: 0, format: 'number', trend: Trend.Down, lastRecordFilesLink: 'https://example.com/complaints_status.html' },
+      { name: 'SAC: NÚMERO EM ABERTO', value: 0, format: 'number', trend: Trend.Down, lastRecordObservation: 'Poucos chamados SAC em aberto.' },
+      { name: 'RETENÇÃO: NÚMERO EM ABERTO', value: 0, format: 'number', trend: Trend.Down },
+      { name: 'SOLICITAÇÕES DE CANCELAMENTO DE AVALIAÇÕES', value: 0, format: 'number', trend: Trend.Down },
       { name: 'SOLICITAÇÃO DE CANCELAMENTO DE SUPLEMENTOS', value: 0, format: 'number', trend: Trend.Down, lastRecordObservation: 'Baixo número de solicitações de cancelamento de suplementos.'},
       { name: 'SOLICITAÇÕES DE CANCELAMENTO DE TRATAMENTOS', value: 0, format: 'number', trend: Trend.Down },
       { name: 'RECLAME AQUI: NOVOS CASOS', value: 0, format: 'number', trend: Trend.Down },
       { name: 'RECLAME AQUI: CASOS EM ABERTO', value: 0, format: 'number', trend: Trend.Down, lastRecordObservation: 'Nenhum caso em aberto no Reclame Aqui atualmente.' },
-    ],
+        ],
   }
 ];
 
