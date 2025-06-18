@@ -150,8 +150,7 @@ const sectorsData: { name: string; description?: string; indicators: InitialIndi
       { name: 'NÚMERO DE ESTORNOS SUPLEMENTOS', value: 0, format: 'number', trend: Trend.Down },
       { name: 'ESTORNOS REALIZADOS/DIA (R$)', value: 0, format: 'currency', unit: 'BRL', trend: Trend.Down, lastRecordFilesLink: 'https://example.com/daily_refunds.csv' },
       { name: 'PENDÊNCIA DE ESTORNOS', value: 0, format: 'number', trend: Trend.Down, lastRecordObservation: 'Fila de pendências de estorno zerada.' },
-      { name: 'TOTAL DE VENDAS (R$)', value: 0, format: 'currency', unit: 'BRL', target: 4200000, lastRecordObservation: 'Total de vendas em valor monetário.'},
-    ],
+         ],
   },
   {
     name: 'JORNADA CLIENTE',
