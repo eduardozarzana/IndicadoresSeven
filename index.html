@@ -1,0 +1,67 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Indicadores Seven</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: 'rgb(var(--color-primary) / <alpha-value>)',
+              secondary: 'rgb(var(--color-secondary) / <alpha-value>)',
+              accent: 'rgb(var(--color-accent) / <alpha-value>)',
+              neutral: 'rgb(var(--color-neutral) / <alpha-value>)',
+              base: 'rgb(var(--color-base) / <alpha-value>)',
+              info: 'rgb(var(--color-info) / <alpha-value>)',
+              success: 'rgb(var(--color-success) / <alpha-value>)',
+              warning: 'rgb(var(--color-warning) / <alpha-value>)',
+              error: 'rgb(var(--color-error) / <alpha-value>)',
+            },
+            animation: {
+              'spin-slow': 'spin 3s linear infinite',
+            }
+          }
+        }
+      }
+    </script>
+    <style type="text/tailwindcss">
+      @layer base {
+        :root {
+          --color-primary: 85 26 139; /* #551A8B (Deep Purple) */
+          --color-secondary: 226 231 235; /* Light Gray (slate-200) */
+          --color-accent: 147 51 234; /* Brighter Purple (purple-600) */
+          --color-neutral: 55 65 81; /* Dark Gray for text (gray-700) */
+          --color-base: 255 255 255; /* White */
+          --color-info: 96 165 250; /* Light blue (blue-400) */
+          --color-success: 74 222 128; /* Light green (green-400) */
+          --color-warning: 251 191 36; /* Light amber (amber-400) */
+          --color-error: 248 113 113; /* Light red (red-400) */
+        }
+        body {
+          @apply bg-slate-100 text-neutral font-sans; /* Changed background to bg-slate-100 */
+        }
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.1.0/",
+    "react": "https://esm.sh/react@^19.1.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+    "recharts": "https://esm.sh/recharts@^2.12.7",
+    "recharts/": "https://esm.sh/recharts@^2.12.7/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
