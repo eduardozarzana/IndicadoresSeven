@@ -19,7 +19,14 @@ const DashboardDisplay: React.FC<DashboardDisplayProps> = ({ data, onSelectIndic
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
       <header className="mb-8 pb-4 border-b border-gray-300">
-        <h1 className="text-4xl font-bold text-primary mb-2">{title}</h1>
+        <div className="flex items-center mb-4">
+          <img 
+            src="https://raichu-uploads.s3.amazonaws.com/logo_clinica-seven_jx531C.png" 
+            alt="Clínica Seven Logo" 
+            className="h-16 w-auto mr-4"
+          />
+          <h1 className="text-4xl font-bold text-primary">{title}</h1>
+        </div>
         <p className="text-sm text-gray-500">Última atualização: {formattedLastUpdated}</p>
       </header>
       
