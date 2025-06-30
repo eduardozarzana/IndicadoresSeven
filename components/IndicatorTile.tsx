@@ -49,7 +49,7 @@ interface IndicatorTileProps {
 
 
 const IndicatorTile: React.FC<IndicatorTileProps> = ({ indicator, onSelectIndicator }) => {
-  const { name, value, unit, format, average7Days, average30Days, lastRecordObservation, lastRecordFilesLink, target } = indicator;
+  const { name, value, unit, format, average7Days, average30Days, lastRecordObservation, lastRecordFilesLink } = indicator;
   const [isObservationExpanded, setIsObservationExpanded] = useState(false);
 
   const renderFormattedValue = (val: number | string | undefined, fmt: typeof format, unt: typeof unit, isTarget: boolean = false) => {
@@ -85,14 +85,6 @@ const IndicatorTile: React.FC<IndicatorTileProps> = ({ indicator, onSelectIndica
           <div className="flex flex-col items-center justify-start text-center">
             <p className="text-xs text-gray-500 uppercase whitespace-nowrap tracking-wide">Último Registro</p>
             {renderFormattedValue(value, format, unit)}
-            
-            {/* Target Display */}
-            {target !== undefined && (
-              <div className="mt-1.5">
-                <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">Meta: </span>
-                {renderFormattedValue(target, format, unit, true)}
-              </div>
-            )}
 
             {(lastRecordObservation || lastRecordFilesLink) && (
               <ul className="list-disc list-inside mt-2 space-y-1.5 text-xs text-gray-700 text-left w-full max-w-xs sm:max-w-none sm:w-auto mx-auto sm:mx-0">
