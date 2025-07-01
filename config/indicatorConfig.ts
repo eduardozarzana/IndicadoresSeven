@@ -22,6 +22,9 @@ export const INDICATORS_TO_SUM = new Set([
   'nmero-de-vendas-humano',
   'nmero-agendado',
   'total-de-vendas-r', // Adicionado para o Pós-Vendas conforme solicitado
+  'nmero-de-estornos-tratamentosatend',
+  'nmero-de-estornos-suplementos',
+  'estornos-realizadosdia-r',
 ]);
 
 /**
