@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ResponsiveContainer, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Line } from 'recharts';
+import { ResponsiveContainer, AreaChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Area, Line } from 'recharts';
 import { Indicator } from '../types';
 import { shouldUseSummation } from '../config/indicatorConfig';
 
@@ -48,7 +48,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     const value = payload[0].value;
-    const { format, unit } = payload[0].payload.indicator;
+    const { format, unit } = data.indicator;
     
     return (
       <div className="bg-white p-3 border border-gray-300 rounded-lg shadow-lg">
@@ -88,9 +88,12 @@ const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({ indicator, 
   const { name, value, format, unit, average7Days, average30Days, sum7Days, sum30Days, target, description, lastRecordObservation, lastRecordFilesLink, originalId } = indicator;
 
   const chartData = useMemo(() => {
-    if (!indicator.historicalData) return [];
-    
-    return indicator.historicalData
+    if (!indicator.historicalData) {
+      return { data: [], yDomain: [0, 100] };
+    }
+
+    // Prepare data for the chart by filtering for numeric values and adding formatted dates.
+    const processedData = indicator.historicalData
       .map(d => ({
         ...d,
         value: typeof d.value === 'number' ? d.value : null,
@@ -98,8 +101,26 @@ const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({ indicator, 
         indicator,
       }))
       .filter(d => d.value !== null)
-      .reverse(); // historicalData é mais novo->mais antigo, gráfico precisa mais antigo->mais novo
+      .reverse(); // Historical data is newest->oldest, chart needs oldest->newest.
+
+    if (processedData.length === 0) {
+      return { data: [], yDomain: [0, 100] };
+    }
+
+    const numericValues = processedData.map(d => d.value as number);
+    
+    const dataMin = Math.min(...numericValues);
+    const dataMax = Math.max(...numericValues);
+    
+    // Add a 'buffer' (padding) so the line doesn't touch the chart borders.
+    const padding = (dataMax - dataMin) * 0.1 || 1; // Use 1 as a fallback if there is no variation.
+
+    return {
+        data: processedData,
+        yDomain: [Math.floor(dataMin - padding), Math.ceil(dataMax + padding)],
+    };
   }, [indicator]);
+
 
   // Lógica centralizada para decidir entre média e soma.
   const useSum = shouldUseSummation(originalId);
@@ -108,6 +129,10 @@ const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({ indicator, 
   const metric30Days = useSum ? sum30Days : average30Days;
   const label7Days = useSum ? 'Soma 7 Dias' : 'Média 7 Dias';
   const label30Days = useSum ? 'Soma 30 Dias' : 'Média 30 Dias';
+
+  // Cores definidas para garantir a visibilidade no gráfico SVG
+  const primaryColor = "#551A8B";
+  const accentColor = "#9333ea";
 
 
   return (
@@ -146,25 +171,54 @@ const IndicatorDetailModal: React.FC<IndicatorDetailModalProps> = ({ indicator, 
           </section>
 
           {/* Chart */}
-          {chartData.length > 1 ? (
+          {chartData.data.length > 1 ? (
              <section>
               <h3 className="text-lg font-semibold text-neutral mb-3">Histórico de Dados</h3>
-              <div className="w-full h-72 bg-slate-50 p-2 rounded-lg">
+              <div className="w-full h-72 bg-slate-50 p-4 rounded-lg">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={chartData}
-                    margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
+                  <AreaChart
+                    data={chartData.data}
+                    margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
                   >
+                    <defs>
+                      <linearGradient id="colorValor" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={primaryColor} stopOpacity={0.7}/>
+                        <stop offset="95%" stopColor={primaryColor} stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                    <XAxis dataKey="formattedDate" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 12 }} domain={['dataMin', 'dataMax']} allowDataOverflow={false} />
+                    <XAxis dataKey="formattedDate" tick={{ fontSize: 12, fill: '#4b5563' }} />
+                    <YAxis 
+                      tick={{ fontSize: 12, fill: '#4b5563' }} 
+                      domain={chartData.yDomain}
+                      allowDataOverflow={true}
+                    />
                     <Tooltip content={<CustomTooltip />} />
-                    <Legend />
-                    <Line type="monotone" dataKey="value" name={unit || 'Valor'} stroke="var(--color-primary)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 8 }} />
+                    <Legend verticalAlign="top" height={36}/>
+                    <Area 
+                      type="monotone" 
+                      dataKey="value" 
+                      name={unit || 'Valor'} 
+                      stroke={primaryColor} 
+                      strokeWidth={2} 
+                      fill="url(#colorValor)" 
+                      fillOpacity={1}
+                      dot={{ r: 4, fill: primaryColor, strokeWidth: 0 }}
+                      activeDot={{ r: 6, fill: primaryColor, stroke: 'white', strokeWidth: 2 }}
+                    />
                     {target !== undefined && typeof target === 'number' && (
-                        <Line type="monotone" dataKey={() => target} name="Meta" stroke="var(--color-accent)" strokeWidth={2} strokeDasharray="5 5" dot={false} activeDot={false} />
+                        <Line 
+                          type="monotone" 
+                          dataKey={() => target} 
+                          name="Meta" 
+                          stroke={accentColor} 
+                          strokeWidth={2} 
+                          strokeDasharray="5 5" 
+                          dot={false} 
+                          activeDot={false} 
+                        />
                     )}
-                  </LineChart>
+                  </AreaChart>
                 </ResponsiveContainer>
               </div>
             </section>
